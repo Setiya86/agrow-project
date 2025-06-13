@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/dist/css/bootstrap.min.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/css/infoH.css">
+    <script src="{{ url_for('static', filename='assets/dist/js/bootstrap.bundle.min.js') }}"></script>
+</head>
+<body>
+    {% if user.role == 'petani' %}
+        {% include 'NavbarPetani.html' %}
+    {% elif user.role == 'distributor' %}
+        {% include 'NavbarDistributor.html' %}
+    {% endif %}
+    <div class="content">
+        <div class="content" style="background-image: url(../static/img/Rectangle_139.png);width: auto; height:425px; ;">
+            <h1 style="text-align: center; padding-top:100px; color: white;">Informasi Harga Komoditi di Tingkat Petani</h1>
+            <h3 style="text-align: center; color: white;">Daftar Harga Komoditi di Tingkat Petani Per {{current_date}}</h3>
+            <div class="filter-container">
+                <label for="province-select" style='color:white'>Wilayah:</label>
+                <select id="province-select" style="border-radius: 20px;">
+                    <option value="all">Semua Provinsi</option>
+                </select>
+                <label for="commodity-select" style="color:white">Komoditas:</label>
+                <select id="commodity-select" style="border-radius: 20px;">
+                    <option value="all">Semua Komoditas</option>
+                </select>
+            </div>
+        </div>
+        <div id="chart-containers" style="padding-left:40px; background-color:#E1FCF7; margin:40px; border-radius:30px;padding:20px">
+            <h2>Harga Pasar Komoditas</h2>
+            <div class="chart-section" id="combined-chart-section"></div>
+        </div>
+        <div id="filtered-chart-container" style="display: none; padding-left:40px; background-color:#E1FCF7; margin:40px; border-radius:30px; padding:20px">
+            <h2>Harga Pasar Komoditas</h2>
+            <div id="filtered-chart-section" class="chart-section" ></div>
+        </div>
+        <div id="no-data-section" style="display: none;">
+            <p>No data available</p>
+        </div>
+    </div>
+    {% if user.role == 'petani' %}
+        <div class="d-flex" style="margin:20px">
+            <button style="width: 50%; height:464px; background-color:#009B4C; text-align: center">
+                <a href="/jual" style="text-decoration: none; color:white">
+                    <h3>Jual Hasil Panen</h3>
+                    <p>Tawarkan Hasil Panen Anda</p>
+                    <p>dan Bertemulah Dengan Distributor!</p>
+                </a>
+            </button>
+            <button style="width: 50%; height:464px; background-color:#004225; text-align: center">
+                <a href="/catatan" style="text-decoration: none; color:white">
+                    <h3>Catat Hasil Panen</h3>
+                    <p>Catat Hasil Panen Anda Secara Berkala!</p>
+                </a>
+            </button>
+        </div>
+    {% elif user.role == 'distributor' %}
+        <div class="d-flex" style="margin:20px">
+            <button style="width: 50%; height:464px; background-color:#009B4C; text-align: center">
+                <a href="/penawaran" style="text-decoration: none; color:white">
+                    <h3>Penawaran</h3>
+                    <p>Temukan Penawaran Penjualan Dari Petani</p>
+                    <p>dan Lakukan Transaksi!</p>
+                </a>
+            </button>
+            <button style="width: 50%; height:464px; background-color:#004225; text-align: center">
+                <a href="/komunitas" style="text-decoration: none; color:white">
+                    <h3>Komunitas Tani Potensial</h3>
+                    <p>Temukan Komunitas Tani Potensial</p>
+                    <p>dan Lakukan Transaksi Secara Langsung! </p>
+                </a>
+            </button>
+        </div>
+    {% endif %}
+    <div class="content">
+        <div class="con" style="background-image:url(../static/img/Rectangle_138.png); width: auto; height: 391px;">
+            <h4 class="text-white text-center pt-5">Berita</h4>
+            <form class="d-flex justify-content-center w-50 mx-auto" role="search" action="/search" method="post">
+                <input class="form-control me-2" type="search" name="query" placeholder="Cari Berita" aria-label="Search">
+                <button class="btn btn-light" type="submit"><img src="{{ url_for('static', filename='img/search.png') }}" alt=""></button>
+            </form>
+        </div>
+        <div class="search mt-4">
+            {% if query %}
+                <h2>Hasil Pencarian "{{ query }}":</h2>
+                {% if results %}
+                    <ul class="list-group">
+                        {% for item in results %}
+                        <div class="content mb-4 p-3 bg-light">
+                            <a href="{{ url_for('tampilkan_berita', judul=item['judul']) }}" style="text-decoration: none; color:black;">
+                                <div class="d-flex">
+                                    <img src="{{ url_for('static', filename='img/' + item['foto']) }}" alt="{{ item['judul'] }}" class="img-fluid" style="width: 200px; height: 200px;">
+                                    <div class="con ml-3">
+                                        <h6 class="small p-2">{{ item['penerbit'] }} {{ item['tanggal']}} {{ item['jam']}}</h6>
+                                        <h3 class="p-2">{{ item['judul'] }}</h3>
+                                        <h6 class="medium p-2">{{ item['ringkasan'] }}</h6>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No results found.</p>
+                {% endif %}
+            {% else %}
+                <div class="container mt-4">
+                    <div class="row">
+                        {% for item in berita_data %}
+                        <div class="content mb-4 p-3 bg-light">
+                            <a href="{{ url_for('tampilkan_berita', judul=item['judul']) }}" style="text-decoration: none; color:black;">
+                                <div class="d-flex">
+                                    <img src="{{ url_for('static', filename='img/' + item['foto']) }}" alt="{{ item['judul'] }}" class="img-fluid" style="width: 200px; height: 200px;">
+                                    <div class="con ml-3">
+                                        <h6 class="small p-2">{{ item['penerbit'] }} {{ item['tanggal']}} {{ item['jam']}}</h6>
+                                        <h3 class="p-2">{{ item['judul'] }}</h3>
+                                        <h6 class="medium p-2">{{ item['ringkasan'] }}</h6>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% include 'footer.html' %}
+</body>
+<script>
+    $(document).ready(function() {
+        let allData = {};
+
+        function loadChart(chartData, containerId) {
+            const chartSection = document.getElementById(containerId);
+            chartSection.innerHTML = '';
+
+            chartData.forEach((entry, index) => {
+                const graphDiv = document.createElement('canvas');
+                graphDiv.className = 'chart-wrapper';
+                const ctx = graphDiv.getContext('2d');
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: entry.data.map(e => new Date(e.waktu).toLocaleDateString()),
+                        datasets: [{
+                            label: 'Harga',
+                            data: entry.data.map(e => e.price),
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                display: false,
+                                grid: {
+                                    display: true
+                                }
+                            },
+                            y: {
+                                display: false,
+                                grid: {
+                                    display: true
+                                },
+                                beginAtZero: true
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                enabled: true
+                            }
+                        }
+                    }
+                });
+
+                const latestPrice = entry.data[entry.data.length - 1].price;
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'chart-header';
+                headerDiv.innerHTML = `<p>${entry.comodity}</p>`;
+
+                const footerDiv = document.createElement('div');
+                footerDiv.className = 'chart-footer';
+                footerDiv.innerHTML = `
+                    <p>Provinsi: ${entry.province}</p>
+                    <p>Harga: ${latestPrice}</p>
+                    <a href="#">Selengkapnya</a>
+                `;
+
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'chart-card';
+                cardDiv.appendChild(headerDiv);
+                cardDiv.appendChild(graphDiv);
+                cardDiv.appendChild(footerDiv);
+
+                chartSection.appendChild(cardDiv);
+            });
+        }
+
+        function loadAllCharts() {
+            const containerId = 'combined-chart-section';
+            const chartSection = document.getElementById(containerId);
+            chartSection.innerHTML = '';
+
+            Object.keys(allData).forEach(commodity => {
+                if (allData[commodity].length > 0) {
+                    loadChart(allData[commodity], containerId);
+                }
+            });
+        }
+
+        function loadFilteredCharts(commodity, province) {
+            let filteredData = {};
+
+            if (commodity === 'all') {
+                Object.keys(allData).forEach(key => {
+                    filteredData[key] = allData[key].filter(entry => province === 'all' || entry.province === province);
+                });
+            } else {
+                filteredData[commodity] = allData[commodity].filter(entry => province === 'all' || entry.province === province);
+            }
+
+            const containerId = 'filtered-chart-section';
+            const chartSection = document.getElementById(containerId);
+            chartSection.innerHTML = '';
+
+            loadChart(Object.values(filteredData).flat(), containerId);
+
+            const noDataSection = document.getElementById('no-data-section');
+            if (Object.values(filteredData).every(arr => arr.length === 0)) {
+                noDataSection.style.display = 'block';
+            } else {
+                noDataSection.style.display = 'none';
+            }
+
+            $('#filtered-chart-container').show();
+            $('#chart-containers').hide();
+        }
+
+        function populateFilters(data) {
+            const commoditySelect = $('#commodity-select');
+            const provinceSelect = $('#province-select');
+
+            let commodities = Object.keys(data);
+            let provinces = new Set();
+
+            commodities.forEach(commodity => {
+                commoditySelect.append(`<option value="${commodity}">${commodity}</option>`);
+                data[commodity].forEach(entry => {
+                    provinces.add(entry.province);
+                });
+            });
+
+            provinces.forEach(province => {
+                provinceSelect.append(`<option value="${province}">${province}</option>`);
+            });
+        }
+
+        function fetchData() {
+            $.ajax({
+                url: '/harga_pasar_data',
+                method: 'GET',
+                success: function(response) {
+                    console.log("Chart data received:", response);
+                    let anyData = false;
+
+                    Object.keys(response).forEach(function(commodity) {
+                        if (response[commodity].length > 0) {
+                            anyData = true;
+                        }
+                    });
+
+                    allData = response;
+
+                    populateFilters(response);
+                    loadAllCharts();
+
+                    if (!anyData) {
+                        $('#no-data-section').show();
+                    } else {
+                        $('#no-data-section').hide();
+                    }
+                },
+                error: function(response) {
+                    console.error('Error generating charts:', response.responseJSON.error);
+                    alert('Error generating charts: ' + response.responseJSON.error);
+                }
+            });
+        }
+
+        $('#commodity-select').on('change', function() {
+            const commodity = $(this).val();
+            const province = $('#province-select').val();
+            if (commodity === 'all' && province === 'all') {
+                $('#filtered-chart-container').hide();
+                $('#chart-containers').show();
+                loadAllCharts();
+            } else {
+                loadFilteredCharts(commodity, province);
+            }
+        });
+
+        $('#province-select').on('change', function() {
+            const commodity = $('#commodity-select').val();
+            const province = $(this).val();
+            if (commodity === 'all' && province === 'all') {
+                $('#filtered-chart-container').hide();
+                $('#chart-containers').show();
+                loadAllCharts();
+            } else {
+                loadFilteredCharts(commodity, province);
+            }
+        });
+
+        fetchData();
+    });
+</script>
+</html>

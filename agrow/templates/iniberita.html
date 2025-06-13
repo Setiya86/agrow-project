@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{berita['judul']}}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/dist/css/bootstrap.min.css') }}">
+    <script src="{{ url_for('static', filename='assets/dist/js/bootstrap.bundle.min.js') }}"></script>
+    <style>
+        .berita-konten {
+            width: 80%;
+            max-width: 800px;
+            text-align: justify;
+        }
+    </style>
+</head>
+<body>
+    {% if role == 'petani' %}
+        {% include 'NavbarPetani.html' %}
+    {% elif role == 'distributor' %}
+        {% include 'NavbarDistributor.html' %}
+    {% else %}
+        {% include 'navbar.html' %}
+    {% endif %}
+    <div class="content" style="height:auto; color:black; background-color:#E7F8F2">
+        <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a style="color: black;" href="#">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page" style="color: black;">Berita</li>
+                <li class="breadcrumb-item active" aria-current="page" style="color: black;">{{ berita['judul']}}</li>
+            </ol>
+        </nav>
+        <div class="container">
+            <h2 style="font-size: larger; text-align: center;">{{ berita['judul'] }}</h2>
+            <h5 style="font-size: smaller; text-align: center;">{{ berita['penerbit'] }}</h5>
+            <p style="font-size: smaller; text-align: center;">{{ berita['hari'] }}, {{ berita['tanggal'] }} {{ berita['jam'] }}</p>
+            <div class="d-flex justify-content-center mb-4">
+                <img src="{{ url_for('static', filename='img/' + berita['content']) }}" alt="{{ berita['judul'] }}" class="img-fluid" style="width: 80%;">
+            </div>
+            <div class="d-flex justify-content-center">
+                <div class="berita-konten">
+                    {{ berita['isi'] |safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-5" style="background-color: #028E66; border-radius:20px; padding:30px">
+        <h4>Komentar {% if berita['komentar'] %} ({{ berita['komentar'] | length }}) {% endif %}</h4>
+        <div class="mt-5">
+            {% if 'phone' in session %}
+                <h4>Tambah Komentar</h4>
+                <form action="{{ url_for('tampilkan_berita', judul=berita['judul']) }}" method="post">
+                    <div class="d-flex mb-3 justify-content-evenly" style="background-color: white; border-radius:20px; height:max-content; padding:20px">
+                        <textarea class="form-control" id="teks" name="teks" rows="3" style="width: 80%; border:none" placeholder="isi komentar" required></textarea>
+                        <div class="lis">
+                            <button type="submit" class="btn" style="background-color: #3D6643; color:white">Kirim <img src="../static/img/Vector.png" alt="" style="width: 20px; height:20px;" srcset=""></button>
+                        </div>
+                    </div>
+                </form>
+                {% endif %}
+                <div class="d-flex justify-content-between">
+                    <div>
+                    <button style="text-decoration: none; border-radius: 20px; background-color:#3D6643"><a href="{{ url_for('tampilkan_berita', judul=berita['judul'], sort_by='terbaru') }}" class="btn btn-link" style="text-decoration: none; color:white">Terbaru</a></button>
+                    <button style="text-decoration: none; border-radius: 20px; background-color:#3D6643"><a href="{{ url_for('tampilkan_berita', judul=berita['judul'], sort_by='terpopuler') }}" class="btn btn-link" style="text-decoration: none; color:white">Terpopuler</a></button>
+                    <button style="text-decoration: none; border-radius: 20px; background-color:#3D6643"><a href="{{ url_for('tampilkan_berita', judul=berita['judul'], sort_by='disematkan') }}" class="btn btn-link" style="text-decoration: none; color:white">Disematkan</a></button>
+                </div>
+            </div>
+            <ul class="list-group">
+                {% if berita['komentar'] %}
+                    {% for komentar in berita['komentar'] %}
+                        <li class="list-group-item" style="background-color: white; border-radius:20px; margin:10px">
+                            <div class="d-flex justify-content-between" >
+                                <div>
+                                    <div class="d-flex mb-3">
+                                        <img src="{{ url_for('static', filename='img/' + komentar.image) }}" alt="photo" srcset="" style="width: 40px; height:40px; border-radius:20px;">
+                                        <div class="con">
+                                            <h5>{{komentar.nama}}</h5>
+                                            <small>{{ komentar.waktu }}</small>
+                                        </div>
+                                    </div>
+                                    <p>{{ komentar['teks'] }}</p>
+                                    <div class="d-flex">
+                                        <button class="btn btn-sm me-2" onclick="likeComment('{{ berita.judul }}', '{{ komentar._id }}', 'like')"><img src="../static/img/thumbs-up.png" alt="" srcset="">({{ komentar['likes'] }})</button>
+                                        <button class="btn btn-sm" onclick="likeComment('{{ berita.judul }}', '{{ komentar._id }}', 'dislike')"> <img src="../static/img/thumbs-down.png" alt="" srcset="">({{ komentar['dislikes'] }})</button>
+                                    </div>
+                                    <div class="d-flex justify-content-around">
+                                        <div>
+                                            {% for reply in komentar['replies'] %}
+                                                <div class="d-flex mb-3">
+                                                    <img src="{{ url_for('static', filename='img/' + reply['image']) }}" alt="photo" srcset="" style="width: 40px; height:40px; border-radius:20px;">
+                                                    <div class="con">
+                                                        <h5>{{reply.nama}}</h5>
+                                                        <small>{{ reply.waktu }}</small>
+                                                    </div>
+                                                </div>
+                                                <p>{{ reply['teks'] }}</p>
+                                                <div class="d-flex">
+                                                    <<button class="btn btn-sm me-2" onclick="likeComment('{{ berita.judul }}', '{{ komentar._id }}', 'like')"><img src="../static/img/thumbs-up.png" alt="" srcset="">({{ komentar['likes'] }})</button>
+                                                    <button class="btn btn-sm" onclick="likeComment('{{ berita.judul }}', '{{ komentar._id }}', 'dislike')"> <img src="../static/img/thumbs-down.png" alt="" srcset="">({{ komentar['dislikes'] }})</button>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <form action="{{ url_for('tampilkan_berita', judul=berita['judul']) }}" method="post">
+                                    <input type="hidden" name="parent_id" value="{{ komentar['_id'] }}">
+                                    {% if 'phone' in session %}
+                                    <div class="mb-3">
+                                        <label for="teks" class="form-label">Balasan Komentar</label>
+                                        <textarea class="form-control" id="teks" name="teks" rows="3" required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn" style="background-color: #028E66;">Balas</button>
+                                    {% endif %}
+                                </form>
+                            </div>
+                        </li>
+                    {% endfor %}
+                {% else %}
+                <li class="list-group-item">Belum ada komentar.</li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        function likeComment(judul, komentarId, action) {
+            $.ajax({
+                type: 'POST',
+                url: '/like_comment',
+                contentType: 'application/json',
+                data: JSON.stringify({ judul: judul, komentar_id: komentarId, action: action }),
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    }
+                }
+            });
+        }
+    </script>
+    <script src="{{ url_for('static', filename='assets/dist/js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

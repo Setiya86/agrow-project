@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informasi Harga Komoditi</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="../static/assets/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/infoH.css">
+    <script src="{{ url_for('static', filename='assets/dist/js/bootstrap.bundle.min.js') }}"></script>
+</head>
+<body>
+    {% if user.role == 'petani' %}
+        {% include 'NavbarPetani.html' %}
+    {% elif user.role == 'distributor' %}
+        {% include 'NavbarDistributor.html' %}
+    {% else %}
+        {% include 'navbar.html' %}
+    {% endif %}
+    <div class="content" style="background-image: url(../static/img/Rectangle_139.png);width: auto; height:425px; ;">
+        <h1 style="text-align: center; padding-top:100px; color: white;">Informasi Harga Komoditi di Tingkat Petani</h1>
+        <h3 style="text-align: center; color: white;">Daftar Harga Komoditi di Tingkat Petani Per {{current_date}}</h3>
+        <div class="filter-container">
+            <label for="province-select" style='color:white'>Wilayah:</label>
+            <select id="province-select" style="border-radius: 20px;">
+                <option value="all">Semua Provinsi</option>
+            </select>
+            <label for="commodity-select" style="color:white">Komoditas:</label>
+            <select id="commodity-select" style="border-radius: 20px;">
+                <option value="all">Semua Komoditas</option>
+            </select>
+        </div>
+    </div>
+    <div id="chart-containers">
+        <div id="chart-container-1" style="padding-left:40px; background-color:#E1FCF7; margin:40px; border-radius:30px;padding:20px">
+            <h2>Beras Giling</h2>
+            <div id="chart-section-1" class="chart-section"></div>
+        </div>
+        <div id="chart-container-2" style="padding-left:40px; background-color:#E1FCF7; margin:40px; border-radius:30px; padding:20px">
+            <h2>Beras Gabah</h2>
+            <div id="chart-section-2" class="chart-section"></div>
+        </div>
+        <div id="chart-container-3" style="padding-left:40px; background-color:#E1FCF7; margin:40px; border-radius:30px; padding:20px">
+            <h2>Bawang Merah</h2>
+            <div id="chart-section-3" class="chart-section"></div>
+        </div>
+        <div id="chart-container-4" style="padding-left:40px; background-color:#E1FCF7; margin:40px; border-radius:30px; padding:20px">
+            <h2>Jagung</h2>
+            <div id="chart-section-4" class="chart-section"></div>
+        </div>
+        <div id="chart-container-5" style="padding-left:40px; background-color:#E1FCF7; margin:40px; border-radius:30px; padding:20px">
+            <h2>Cabai Merah Keriting</h2>
+            <div id="chart-section-5" class="chart-section"></div>
+        </div>
+        <div id="chart-container-6" style="padding-left:40px; background-color:#E1FCF7; margin:40px; border-radius:30px; padding:20px">
+            <h2>Cabai Merah Besar</h2>
+            <div id="chart-section-6" class="chart-section"></div>
+        </div>
+        <div id="chart-container-7" style="padding-left:40px; background-color:#E1FCF7; margin:40px; border-radius:30px; padding:20px">
+            <h2>Cabai Rawit</h2>
+            <div id="chart-section-7" class="chart-section"></div>
+        </div>
+    </div>
+    <div id="filtered-chart-container" style="display: none; padding-left:40px; background-color:#E1FCF7; margin:40px; border-radius:30px; padding:20px">
+        <h2>Filtered Chart</h2>
+        <div id="filtered-chart-section" class="chart-section" ></div>
+    </div>
+    <div id="no-data-section" style="display: none;">
+        <p>No data available</p>
+    </div>
+    {% include 'footer.html' %}
+    <script>
+        $(document).ready(function() {
+            let allData = {};
+
+            function loadChart(chartData, containerId) {
+                const chartSection = document.getElementById(containerId);
+                chartSection.innerHTML = '';
+
+                chartData.forEach((entry, index) => {
+                    const graphDiv = document.createElement('canvas');
+                    graphDiv.className = 'chart-wrapper';
+                    const ctx = graphDiv.getContext('2d');
+
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: entry.data.map(e => new Date(e.waktu).toLocaleDateString()),
+                            datasets: [{
+                                label: 'Harga',
+                                data: entry.data.map(e => e.price),
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1,
+                                pointRadius: 3,
+                                pointHoverRadius: 5,
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                x: {
+                                    display: false, 
+                                    grid: {
+                                        display: true 
+                                    }
+                                },
+                                y: {
+                                    display: false, 
+                                    grid: {
+                                        display: true 
+                                    },
+                                    beginAtZero: true
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false 
+                                },
+                                tooltip: {
+                                    enabled: true 
+                                }
+                            }
+                        }
+                    });
+
+                    const latestPrice = entry.data[entry.data.length - 1].price;
+                    const footerDiv = document.createElement('div');
+                    footerDiv.className = 'chart-footer';
+                    footerDiv.innerHTML = `
+                        <p>Provinsi: ${entry.province}</p>
+                        <p>Harga: ${latestPrice}</p>
+                        <a href="#">Selengkapnya</a>
+                    `;
+
+                    const cardDiv = document.createElement('div');
+                    cardDiv.className = 'chart-card';
+                    cardDiv.appendChild(graphDiv);
+                    cardDiv.appendChild(footerDiv);
+
+                    chartSection.appendChild(cardDiv);
+                });
+            }
+
+            function loadAllCharts() {
+                Object.keys(allData).forEach(commodity => {
+                    const containerId = `chart-section-${commodity.replace(/\s+/g, '-').toLowerCase()}`;
+                    const chartSection = document.getElementById(containerId);
+                    chartSection.innerHTML = '';
+                    if (allData[commodity].length === 0) {
+                        $('#' + containerId).hide();
+                    } else {
+                        $('#' + containerId).show();
+                        loadChart(allData[commodity], containerId);
+                    }
+                });
+            }
+
+            function loadFilteredCharts(commodity, province) {
+                let filteredData = {};
+
+                if (commodity === 'all') {
+                    Object.keys(allData).forEach(key => {
+                        filteredData[key] = allData[key].filter(entry => province === 'all' || entry.province === province);
+                    });
+                } else {
+                    filteredData[commodity] = allData[commodity].filter(entry => province === 'all' || entry.province === province);
+                }
+
+                $("#chart-containers").hide();
+                $("#filtered-chart-container").show();
+
+                loadChart(Object.values(filteredData).flat(), 'filtered-chart-section');
+
+                if (Object.values(filteredData).every(arr => arr.length === 0)) {
+                    $('#no-data-section').show();
+                } else {
+                    $('#no-data-section').hide();
+                }
+            }
+
+            function populateFilters(data) {
+                const commoditySelect = $('#commodity-select');
+                const provinceSelect = $('#province-select');
+
+                let commodities = Object.keys(data);
+                let provinces = new Set();
+
+                commodities.forEach(commodity => {
+                    commoditySelect.append(`<option value="${commodity}">${commodity}</option>`);
+                    data[commodity].forEach(entry => {
+                        provinces.add(entry.province);
+                    });
+                });
+
+                provinces.forEach(province => {
+                    provinceSelect.append(`<option value="${province}">${province}</option>`);
+                });
+            }
+
+            function fetchData() {
+                $.ajax({
+                    url: '/harga_pasar_data',
+                    method: 'GET',
+                    success: function(response) {
+                        console.log("Chart data received:", response);
+                        const containerIds = {
+                            "Beras Giling": 'chart-section-1',
+                            "Beras Gabah": 'chart-section-2',
+                            "Bawang Merah": 'chart-section-3',
+                            "Jagung": 'chart-section-4',
+                            "Cabai Merah Keriting": 'chart-section-5',
+                            "Cabai Merah Besar": 'chart-section-6',
+                            "Cabai Rawit": 'chart-section-7'
+                        };
+                        let anyData = false;
+
+                        Object.keys(response).forEach(function(commodity) {
+                            const containerId = containerIds[commodity];
+                            const chartSection = document.getElementById(containerId);
+                            chartSection.innerHTML = '';
+
+                            if (response[commodity].length === 0) {
+                                $('#' + containerId).hide();
+                            } else {
+                                anyData = true;
+                                $('#' + containerId).show();
+                                
+                                loadChart(response[commodity], containerId);
+                            }
+                        });
+
+                        if (!anyData) {
+                            $('#no-data-section').show();
+                        } else {
+                            $('#no-data-section').hide();
+                        }
+                        allData = response;
+
+                        populateFilters(response);
+                        loadAllCharts();
+                    },
+                    error: function(response) {
+                        console.error('Error generating charts:', response.responseJSON.error);
+                        alert('Error generating charts: ' + response.responseJSON.error);
+                    }
+                });
+            }
+
+            $('#commodity-select').on('change', function() {
+                const commodity = $(this).val();
+                const province = $('#province-select').val();
+                if (commodity === 'all' && province === 'all') {
+                    $("#filtered-chart-container").hide();
+                    $("#chart-containers").show();
+                    loadAllCharts();
+                } else {
+                    loadFilteredCharts(commodity, province);
+                }
+            });
+
+            $('#province-select').on('change', function() {
+                const commodity = $('#commodity-select').val();
+                const province = $(this).val();
+                if (commodity === 'all' && province === 'all') {
+                    $("#filtered-chart-container").hide();
+                    $("#chart-containers").show();
+                    loadAllCharts();
+                } else {
+                    loadFilteredCharts(commodity, province);
+                }
+            });
+
+            fetchData();
+        });
+    </script>
+</body>
+</html>

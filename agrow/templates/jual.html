@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jual Komoditas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/dist/css/bootstrap.min.css') }}">
+    <script>
+        let originalDistributors = [];
+
+        function showSection(section) {
+            document.getElementById('status-section').style.display = 'none';
+            document.getElementById('offer-section').style.display = 'none';
+            document.getElementById(section).style.display = 'block';
+            localStorage.setItem('selectedSection', section);
+        }
+
+        function loadSection() {
+            const section = localStorage.getItem('selectedSection') || 'status-section';
+            showSection(section);
+        }
+
+        window.onload = loadSection;
+
+        function searchDistributors() {
+            const query = document.getElementById('search-distributor').value.toLowerCase();
+            const distributorSelect = document.getElementById('distributor');
+            const options = Array.from(distributorSelect.options);
+
+            if (!originalDistributors.length) {
+                originalDistributors = options;
+            }
+
+            distributorSelect.innerHTML = '';
+            options.forEach(option => {
+                if (option.textContent.toLowerCase().includes(query)) {
+                    distributorSelect.appendChild(option);
+                }
+            });
+        }
+
+        function confirmSearch() {
+            originalDistributors = Array.from(document.getElementById('distributor').options);
+        }
+
+        function resetSearch() {
+            const distributorSelect = document.getElementById('distributor');
+            distributorSelect.innerHTML = '';
+            originalDistributors.forEach(option => distributorSelect.appendChild(option));
+            document.getElementById('search-distributor').value = '';
+        }
+    </script>
+    <style>.custom-file-upload {
+        display: inline-block;
+        padding: 10px 20px;
+        cursor: pointer;
+        background-color: #004225 ;
+        border: 1px solid #004225;
+        border-top-left-radius: 5px;
+        border-bottom-left-radius: 5px;
+        color: #CBE8DF;
+        margin-top: 10px;
+    }
+    .file-upload-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #file-name {
+        font-style: italic;
+        padding: 10px 20px;
+        margin-top: 10px;
+        border: 1px solid #004225;
+        background-color: #CBE8DF;
+        border-top-right-radius: 5px;
+        border-bottom-right-radius: 5px;
+    }
+</style>
+</head>
+<body>
+    {% include 'NavbarPetani.html' %}
+    <div class="container mt-5">
+        <button class="btn" style="width:45%; background-color:#004225; color:white" onclick="showSection('status-section')">Lihat Status Penawaran</button>
+        <button class="btn" style="width:45%; background-color:#004225; color:white" onclick="showSection('offer-section')">Tawarkan Komoditas</button>
+        <div id="status-section" style="display: none; margin-bottom:40px">
+            <h1>Status Penawaran</h1>
+            {% if offers|length > 0 %}
+                {% for offer in offers %}
+                    <div class="card mt-3">
+                        <div class="card-body" style="background-color: #CBE8DF;">
+                            <h5 class="card-title" style="border-bottom: 3px solid black; padding:5x">{{ offer.commodity }}</h5>
+                            <div class="d-flex justify-content-between">
+                                <div class="con">
+                                    <p class="card-text">Quantity: {{ offer.quantity }} kg</p>
+                                    <p class="card-text">Price: {{ offer.price }}</p>
+                                    <p class="card-text">Distributor: {{ ','.join(offer.distributor) }}</p>
+                                    <p class="card-text">Waktu: {{ offer.waktu }}</p>
+                                    <p class="card-text">Status: {{ offer.status }}</p>
+                                </div>
+                                <div style="border-right: 1px solid black ;"></div>
+                                <img src="{{ url_for('static', filename='img/' + offer.file) }}" alt="{{ offer.commodity }}" class="img-fluid" style="width:40%;">
+                            </div>
+                            {% if offer.status == 'menunggu pengambilan' %}
+                                <form method="post" action="{{ url_for('update_offer') }}">
+                                    <input type="hidden" name="offer_id" value="{{ offer._id }}">
+                                    <input type="hidden" name="action" value="confirm">
+                                    <button type="submit" class="btn btn-success mt-3">Konfirmasi Pengambilan</button>
+                                </form>
+                            {% elif offer.status == 'ditawar' %}
+                                <form method="post" action="{{ url_for('update_offer') }}">
+                                    <input type="hidden" name="offer_id" value="{{ offer._id }}">
+                                    <input type="hidden" name="action" value="accept">
+                                    <button type="submit" class="btn btn-success mt-3">Terima Tawaran</button>
+                                </form>
+                                <form method="post" action="{{ url_for('update_offer') }}">
+                                    <input type="hidden" name="offer_id" value="{{ offer._id }}">
+                                    <input type="hidden" name="action" value="reject">
+                                    <button type="submit" class="btn btn-danger mt-3">Tolak Tawaran</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>Tidak ada penawaran saat ini.</p>
+            {% endif %}
+        </div>
+
+        <div id="offer-section" style="display: none;">
+            <h1 style="text-align: center;margin-top:20px">Tawarkan Komoditas</h1>
+            {% if step == '1' %}
+                <h3 style="text-align: center;margin-top:20px">Pilih Komoditas</h3>
+                <form method="post" action="{{ url_for('offer') }}">
+                    <input type="hidden" name="step" value="1">
+                    <div class="form-group" style="margin-bottom:20px ;">
+                        <button type="submit" name="commodity" style="background-image: url(../static/img/Rectangle_20.png);width:246px;height:189px;margin:10px;font-size:large;font-weight:bold" value="Beras Giling" class="btn" >Beras Giling</button>
+                        <button type="submit" name="commodity" style="background-image: url(../static/img/Group_1.png);width:246px;height:189px;margin:10px;font-size:large;font-weight:bold" value="Beras Gabah" class="btn">Beras Gabah</button>
+                        <button type="submit" name="commodity" style="background-image: url(../static/img/Group_33.png);width:246px;height:189px;margin:10px;font-size:large;font-weight:bold" value="Jagung" class="btn">Jagung</button>
+                        <button type="submit" name="commodity" style="background-image: url(../static/img/Group_36.png);width:246px;height:189px;margin:10px;font-size:large;font-weight:bold" value="Cabai Rawit" class="btn">Cabai Rawit</button>
+                        <button type="submit" name="commodity" style="background-image: url(../static/img/Rectangle-20.png);width:246px;height:189px;margin:10px;font-size:large;font-weight:bold" value="Cabai Merah Besar" class="btn">Cabai Merah Besar</button>
+                        <button type="submit" name="commodity" style="background-image: url(../static/img/Group_37.png);width:246px;height:189px;margin:10px;font-size:large;font-weight:bold" value="Cabai Merah Keriting" class="btn">Cabai Merah Keriting</button>
+                        <button type="submit" name="commodity" style="background-image: url(../static/img/Group_34.png);width:246px;height:189px;margin:10px;font-size:large;font-weight:bold" value="Bawang Merah" class="btn">Bawang Merah</button>
+                    </div>
+                </form>
+            {% elif step == '2' %}
+                <h3 style="text-align: center;">Jumlah Besaran {{ commodity }} Yang Ingin Dijual</h3>
+                <form method="post" style="margin: 20px;" action="{{ url_for('offer') }}">
+                    <input type="hidden" name="step" value="2">
+                    <div class="form-group" style="text-align: center;align-content:center">
+                        <label for="quantity" >(Dalam Satuan Kilo Gram)</label>
+                        <div class="d-flex justify-content-center">
+                            <input type="number" style="width: 50%; background-color:#CBE8DF; text-align:center" name="quantity" id="quantity" placeholder="Masukkan Jumlah Besaran Yang Ingin Dijual" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center">
+                        <button type="submit" style="background-color:#004225; color:white" class="btn mt-3">Lanjut</button>
+                    </div>
+                </form>
+            {% elif step == '3' %}
+                <h4 style="text-align: center;">Harga Jual {{commodity}} Anda Berdasarkan Harga Pasar  (Daerah/Provinsi) adalah RP. {{har}}</h4>
+                <h5 style="text-align: center;">Masukkan Harga yang Ingin Anda Tawarkan ke Distributor</h5>
+                <form method="post" style="margin: 20px;" action="{{ url_for('offer') }}">
+                    <input type="hidden" name="step" value="3">
+                    <div class="form-group">
+                        <div class="d-flex justify-content-center">
+                            <input type="number" style="width: 50%;background-color:#CBE8DF;text-align:center" name="price" id="price" placeholder="Harga Jual yang ditawarkan" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center">
+                        <button type="submit" style="background-color:#004225; color:white" class="btn mt-3">Lanjut</button>
+                    </div>
+                </form>
+            {% elif step == '4' %}
+                <h3 style="text-align: center;">Tambahkan Foto Hasil Panen {{commodity}} Anda</h3>
+                <form method="post" style="margin: 20px;" enctype="multipart/form-data" action="{{ url_for('offer') }}">
+                    <input type="hidden" name="step" value="4">
+                    <div class="form-group">
+                        <div class="file-upload-wrapper">
+                            <label for="file" class="custom-file-upload">Klik untuk memilih gambar</label>
+                            <input type="file" name="file" style="display: none;" id="file" class="form-control" required>
+                            <span id="file-name">Tidak ada file yang dipilih</span>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center">
+                        <button type="submit" style="background-color:#004225; color:white" class="btn mt-3">Lanjut</button>
+                    </div>
+                </form>
+            {% elif step == '5' %}
+                <h3 style="text-align: center;">Pilih Distributor</h3>
+                <form method="post" style="margin: 20px;" action="{{ url_for('offer') }}">
+                    <input type="hidden" name="step" value="5">
+                    <div class="form-group">
+                        <div class="d-flex justify-content-center">
+                            <input type="text" id="search-distributor" style="width: 60%;background-color:#CBE8DF" placeholder="Cari Distributor..." class="form-control mt-2">
+                            <button type="button" style="background-color:#004225; color:white; width:10%" class="btn mt-2" onclick="searchDistributors()">Cari</button>
+                        </div>
+                        <div class="d-flex justify-content-center">
+                            <button type="button" class="btn btn-danger mt-2" onclick="resetSearch()">Batalkan Pencarian</button>
+                        </div>
+                        <div class="custom-dropdown" style="margin: 20px;">
+                            <div class="dropdown-selected"></div>
+                            <div class="dropdown-options">
+                                {% for distributor in distributors %}
+                                <div class="dropdown-option" data-value="{{ distributor.name }}">
+                                    <div class="d-flex justify-content-start" style="background-color: #CBE8DF; border:1px solid black; border-radius:10px">
+                                        <img src="{{ url_for('static', filename='img/' + distributor['image']) }}" alt="gambar" style="width: 100px; height:100px; border-radius:50px; margin:40px">
+                                        <div style="margin:40px; border-left:1px solid #004225; padding-left:20px">
+                                            <h5>Nama     : {{ distributor.name }}</h5>
+                                            <p>Komoditas :{{ distributor.commodity }}</p>
+                                            <p>Alamat    :{{ distributor.address }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center">
+                        <button type="submit" style="background-color:#004225; color:white" class="btn mt-3">Simpan</button>
+                    </div>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+    {% include 'footer.html' %}
+    <script>
+        document.getElementById('file').addEventListener('change', function() {
+            var fileName = this.files[0].name;
+            document.getElementById('file-name').textContent = fileName;
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var selected = document.querySelector('.dropdown-selected');
+            var options = document.querySelector('.dropdown-options');
+
+            selected.addEventListener('click', function() {
+                options.style.display = options.style.display === 'block' ? 'none' : 'block';
+            });
+
+            document.querySelectorAll('.dropdown-option').forEach(function(option) {
+                option.addEventListener('click', function() {
+                    selected.textContent = this.querySelector('h5').textContent;
+                    selected.dataset.value = this.dataset.value;
+                    options.style.display = 'none';
+                });
+            });
+
+            document.addEventListener('click', function(event) {
+                if (!selected.contains(event.target) && !options.contains(event.target)) {
+                    options.style.display = 'none';
+                }
+            });
+        });
+    </script>
+    <script>
+        $(document).ready(function() {
+            $('#kabupaten').change(function() {
+                var regencyId = $(this).val();
+                if (regencyId) {
+                    $.get('/get_kecamatan/' + regencyId, function(data) {
+                        $('#kecamatan').empty().append('<option value="">Pilih Kecamatan</option>');
+                        data.forEach(function(kecamatan) {
+                            $('#kecamatan').append('<option value="' + kecamatan.district + '">' + kecamatan.district + '</option>');
+                        }); 
+                    });
+                } else {
+                    $('#kecamatan').empty().append('<option value="">Pilih Kecamatan</option>');
+                }
+            });
+            $('#kecamatan').change(function() {
+                var districtId = $(this).val();
+                if (districtId) {
+                    $.get('/get_desa/' + districtId, function(data) {
+                        $('#desa').empty().append('<option value="">Pilih Desa</option>');
+                        data.forEach(function(desa) {
+                            $('#desa').append('<option value="' + desa.id + '">' + desa.name + '</option>');
+                        });
+                    });
+                } else {
+                    $('#desa').empty().append('<option value="">Pilih Desa</option>');
+                }
+            });
+
+        });
+    </script>
+    <script src="{{ url_for('static', filename='assets/dist/js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

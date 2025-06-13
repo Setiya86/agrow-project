@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Berita</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/dist/css/bootstrap.min.css') }}">
+    <script src="../static/assets/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    {% if role == 'petani' %}
+        {% include 'NavbarPetani.html' %}
+    {% elif role == 'distributor' %}
+        {% include 'NavbarDistributor.html' %}
+    {% else %}
+        {% include 'navbar.html' %}
+    {% endif %}
+    <div class="content" style="background-image:url(../static/img/Rectangle_138.png); width: auto; height: 391px;">
+        <nav style="--bs-breadcrumb-divider: '>'; color: white;" aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a style="color: white;" href="#">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page" style="color: white;">Berita</li>
+            </ol>
+        </nav>
+        <h4 class="text-white text-center pt-5">Berita</h4>
+        <form class="d-flex justify-content-center w-50 mx-auto" role="search" action="/search" method="post">
+            <input class="form-control me-2" type="search" name="query" placeholder="Cari Berita" aria-label="Search">
+            <button class="btn btn-light" type="submit"><img src="{{ url_for('static', filename='img/search.png') }}" alt=""></button>
+        </form>
+    </div>
+
+    <div class="search mt-4">
+        {% if query %}
+            <h2>Hasil Pencarian "{{ query }}":</h2>
+            {% if results %}
+                <ul class="list-group">
+                    {% for item in results %}
+                        <div class="content mb-4 p-3 bg-light">
+                            <a href="{{ url_for('tampilkan_berita', judul=item['judul']) }}" style="text-decoration: none; color:black;">
+                                <div class="d-flex">
+                                    <img src="{{ url_for('static', filename='img/' + item['foto']) }}" alt="{{ item['judul'] }}" class="img-fluid" style="width: 200px; height: 200px;">
+                                    <div class="con ml-3">
+                                        <h6 class="small p-2">{{ item['penerbit'] }} {{ item['tanggal']}} {{ item['jam']}}</h6>
+                                        <h3 class="p-2">{{ item['judul'] }}</h3>
+                                        <h6 class="medium p-2">{{ item['ringkasan'] }}</h6>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Hasil tidak ditemukan.</p>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="content mt-4">
+        <ul>
+            {% for item in data %}
+                <div class="content mb-4 p-3 bg-light">
+                    <a href="{{ url_for('tampilkan_berita', judul=item['judul']) }}" style="text-decoration: none; color:black;">
+                        <div class="d-flex">
+                            <img src="{{ url_for('static', filename='img/' + item['foto']) }}" alt="{{ item['judul'] }}" class="img-fluid" style="width: 200px; height: 200px;">
+                            <div class="con ml-3">
+                                <h6 class="small p-2">{{ item['penerbit'] }} {{ item['tanggal']}} {{ item['jam']}}</h6>
+                                <h3 class="p-2">{{ item['judul'] }}</h3>
+                                <h6 class="medium p-2">{{ item['ringkasan'] }}</h6>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </ul>
+        <nav aria-label="Navigasi halaman">
+            <ul class="pagination justify-content-center">
+                <li class="page-item {% if halaman == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="/berita?page=1&page_size={{ ukuran_halaman }}" aria-label="First">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item {% if halaman == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="/berita?page={{ halaman - 1 }}&page_size={{ ukuran_halaman }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% for p in range(1, total_halaman + 1) %}
+                    <li class="page-item {% if halaman == p %}active{% endif %}">
+                        <a class="page-link" href="/berita?page={{ p }}&page_size={{ ukuran_halaman }}">{{ p }}</a>
+                    </li>
+                {% endfor %}
+                <li class="page-item {% if halaman == total_halaman %}disabled{% endif %}">
+                    <a class="page-link" href="/berita?page={{ halaman + 1 }}&page_size={{ ukuran_halaman }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item {% if halaman == total_halaman %}disabled{% endif %}">
+                    <a class="page-link" href="/berita?page={{ total_halaman }}&page_size={{ ukuran_halaman }}" aria-label="Last">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% include 'footer.html' %}
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+</body>
+</html>

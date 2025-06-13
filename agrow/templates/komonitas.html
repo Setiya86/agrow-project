@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Komunitas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/dist/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="../static/assets/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#province').change(function() {
+                var provinceId = $(this).val();
+                if (provinceId) {
+                    $.get('/get_kabupaten/' + provinceId, function(data) {
+                        $('#kabupaten').empty().append('<option value="">Pilih Kabupaten</option>');
+                        data.forEach(function(kabupaten) {
+                            $('#kabupaten').append('<option value="' + kabupaten.id + '">' + kabupaten.name + '</option>');
+                        });
+                    });
+                } else {
+                    $('#kabupaten').empty().append('<option value="">Pilih Kabupaten</option>');
+                    $('#kecamatan').empty().append('<option value="">Pilih Kecamatan</option>');
+                    $('#desa').empty().append('<option value="">Pilih Desa</option>');
+                }
+            });
+
+            $('#kabupaten').change(function() {
+                var regencyId = $(this).val();
+                if (regencyId) {
+                    $.get('/get_kecamatan/' + regencyId, function(data) {
+                        $('#kecamatan').empty().append('<option value="">Pilih Kecamatan</option>');
+                        data.forEach(function(kecamatan) {
+                            $('#kecamatan').append('<option value="' + kecamatan.id + '">' + kecamatan.name + '</option>');
+                        });
+                    });
+                } else {
+                    $('#kecamatan').empty().append('<option value="">Pilih Kecamatan</option>');
+                    $('#desa').empty().append('<option value="">Pilih Desa</option>');
+                }
+            });
+            $('#kecamatan').change(function() {
+                var districtId = $(this).val();
+                if (districtId) {
+                    $.get('/get_desa/' + districtId, function(data) {
+                        $('#desa').empty().append('<option value="">Pilih Desa</option>');
+                        data.forEach(function(desa) {
+                            $('#desa').append('<option value="' + desa.id + '">' + desa.name + '</option>');
+                        });
+                    });
+                } else {
+                    $('#desa').empty().append('<option value="">Pilih Desa</option>');
+                }
+            });
+
+            if ($('#province').val()) {
+                $('#province').trigger('change');
+                if ($('#kabupaten').val()) {
+                    $('#kabupaten').trigger('change');
+                    if ($('#kecamatan').val()) {
+                        $('#kecamatan').trigger('change');
+                    }
+                }
+            }
+
+            const showResults = "{{ show_results|default(false) }}";
+            if (showResults === 'True') {
+                $('#search-results').show();
+                $('#search-komunitas').hide();
+            } else {
+                $('#search-results').hide();
+                $('#search-komunitas').show();
+            }
+        });
+    </script>
+</head>
+<body>
+    {% include 'NavbarDistributor.html' %}
+    <div class="container mt-5">
+        <div class="d-flex justify-content-center">
+            <div id="search-komunitas" class="mb-3">
+                <h4 style="text-align:center;">Telusuri Daerah Untuk Menemukan Komunitas Tani Potensial</h4>
+                <div class="card-body" style="background-color:#CBE8DF; padding:20px; margin:10px; border-radius:10px;" >
+                    <form method="post" action="{{ url_for('search_komunitas') }}">
+                        <div class="form-group">
+                            <label for="province">Provinsi:</label>
+                            <select id="province" name="province" class="form-control" required>
+                                <option value="">Pilih Provinsi</option>
+                                {% for prov in provinsi %}
+                                    <option value="{{ prov.id }}">{{ prov.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="kabupaten">Kabupaten:</label>
+                            <select id="kabupaten" name="kabupaten" class="form-control" required>
+                                <option value="">Pilih Kabupaten</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="kecamatan">Kecamatan:</label>
+                            <select id="kecamatan" name="kecamatan" class="form-control" required>
+                                <option value="">Pilih Kecamatan</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="desa">Desa:</label>
+                            <select id="desa" name="desa" class="form-control" required>
+                                <option value="">Pilih Desa</option>
+                            </select>
+                        </div>
+                        <div class="d-flex justify-content-center">
+                            <button type="submit" class="btn mt-3" style="margin:10px; width:80px; background-color: #3D6643; color:white">Cari</button>
+                            <button type="button" class="btn mt-3" style="margin:10px; width:80px; background-color: #3D6643; color:white" onclick="resetSearch()">Reset</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="search-results" class="card" style="display: none; margin:20px">
+            <h2 class="card-title" style="text-align: center; padding:20px">Hasil Pencarian Komunitas</h2>
+            <div class="card-body" style="background-color: #CBE8DF;border-radius:10px">
+                <h5>Kelompok Tani   : Desa {{ desa.name}}</h5>
+                <h5>Jumlah Petani   : {{distinct_count}} </h5>
+            </div>
+            <div class="card-body">
+                {% if data_exists %}
+                <div id="chart-section" class="row">
+                    <div class="col-md-6" style="background-color:#D0E3E0;  margin:20px; width:45%; border-radius:20px; padding:10px;">
+                        <h5 style="text-align: center;">Diagram Perkembangan Hasil Panen</h5>
+                        <canvas id="lineChartPanen"></canvas>
+                    </div>
+                    <div class="col-md-6" style="background-color:#D0E3E0;  margin:20px; width:45%; border-radius:20px; padding:10px;">
+                        <h5 style="text-align: center;">Diagram Perkembangan Penjualan Hasil Panen</h5>
+                        <canvas id="lineChartJual"></canvas>
+                    </div>
+                    <div class="col-md-6 mt-5" style="background-color:#D0E3E0;  margin:20px; width:45%; border-radius:20px; padding:10px;">
+                        <h5 style="text-align: center;">Presentase Pendistribusian Hasil Panen</h5>
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                    <div class="col-md-6 mt-5" style="background-color:#D0E3E0;  margin:20px; width:45%; border-radius:20px; padding:10px;">
+                        <h5 style="text-align: center;">Perbandingan Penjualan dan Jumlah Hasil Panen dalam Kilogram</h5>
+                        <table class="table table-bordered mt-3">
+                            <thead>
+                                <tr>
+                                    <th>Nama Komoditas</th>
+                                    <th>Rata-rata Harga (Rp)</th>
+                                    <th>Tanggal Terakhir Terjual</th>
+                                </tr>
+                            </thead>
+                            <tbody id="riwayat-tbody">
+                                {% for entry in history_data %}
+                                <tr>
+                                    <td>{{ entry.commodity }}</td>
+                                    <td>{{ entry.harga_jual }}</td>
+                                    <td>{{ entry.tanggal_panen.strftime('%d-%m-%Y') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% else %}
+                <div id="no-data-section" class="text-center mt-5">
+                    <h3>Tidak ada komunitas tani</h3>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% include 'footer.html' %}
+    <script>
+        $(document).ready(function() {
+            const panenData = {{ panen_data | default([], true) | tojson | safe }};
+            const jualData = {{ jual_data | default([], true) | tojson | safe }};
+            const historyData = {{ history_data | default([], true) | tojson | safe }};
+
+            if (panenData.length === 0 && jualData.length === 0) {
+                $('#chart-section').hide();
+                $('#no-data-section').show();
+            } else {
+                $('#chart-section').show();
+                $('#no-data-section').hide();
+
+                const commodities = [...new Set(panenData.map(entry => entry.commodity))];
+
+                const lineChartPanenData = commodities.map(commodity => {
+                    return {
+                        label: commodity,
+                        data: panenData.filter(entry => entry.commodity === commodity).map(entry => entry.jumlah_panen),
+                        backgroundColor: 'rgba(54, 162, 235, 1)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    };
+                });
+
+                const lineChartPanenLabels = [...new Set(panenData.map(entry => new Date(entry.tanggal_panen).toLocaleDateString()))];
+
+                const lineCtxPanen = document.getElementById('lineChartPanen').getContext('2d');
+                new Chart(lineCtxPanen, {
+                    type: 'line',
+                    data: {
+                        labels: lineChartPanenLabels,
+                        datasets: lineChartPanenData
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+
+                const lineChartJualData = commodities.map(commodity => {
+                    return {
+                        label: commodity,
+                        data: jualData.filter(entry => entry.commodity === commodity).map(entry => entry.jumlah_dijual),
+                        backgroundColor: 'rgba(255, 206, 86, 1)',
+                        borderColor: 'rgba(255, 206, 86, 1)',
+                        borderWidth: 1
+                    };
+                });
+
+                const lineChartJualLabels = [...new Set(jualData.map(entry => new Date(entry.tanggal_panen).toLocaleDateString()))];
+
+                const lineCtxJual = document.getElementById('lineChartJual').getContext('2d');
+                new Chart(lineCtxJual, {
+                    type: 'line',
+                    data: {
+                        labels: lineChartJualLabels,
+                        datasets: lineChartJualData
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+
+                const totalPanen = panenData.reduce((total, entry) => total + entry.jumlah_panen, 0);
+                const totalJual = jualData.reduce((total, entry) => total + entry.jumlah_dijual, 0);
+                const pieCtx = document.getElementById('pieChart').getContext('2d');
+                new Chart(pieCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Jumlah Panen', 'Jumlah Dijual'],
+                        datasets: [{
+                            label: 'Persentase',
+                            data: [totalPanen, totalJual],
+                            backgroundColor: [
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)'
+                            ],
+                            borderColor: [
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

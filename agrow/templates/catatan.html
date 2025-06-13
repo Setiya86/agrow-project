@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catatan</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/dist/css/bootstrap.min.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"></script>
+</head>
+<body>
+    {% include 'NavbarPetani.html' %}
+    <div class="container mt-5">
+        <h1>Pencatatan Hasil Panen</h1>
+        <div class="d-flex justify-content-around">
+            <button type="button" class="btn mb-3" style="width: 49%; background-color: #D0E3E0" onclick="showSection('catatan')">Perkembangan</button>
+            <button type="button" class="btn mb-3" style="width: 49%; background-color: #D0E3E0" onclick="showSection('aktivitas')">Aktivitas</button>
+        </div>
+        <div id="catatan-section">
+            <div id="chart-section" class="row justify-content-around">
+                <div class="col-md-6 card" style="background-color:#D0E3E0; margin:20px; width:45%; border-radius:20px">
+                    <h2>Diagram Perkembangan Hasil Panen </h2>
+                    <canvas id="lineChartPanen"></canvas>
+                </div>
+                <div class="col-md-6 card" style="background-color:#D0E3E0;  margin:20px; width:45%; border-radius:20px">
+                    <h2>Diagram Perkembangan penjualan Hasil Panen </h2>
+                    <canvas id="lineChartJual"></canvas>
+                </div>
+                <div class="col-md-6 card" style="background-color:#D0E3E0;  margin:20px; width:45%; border-radius:20px">
+                    <h2>Presentase pendistribusian hasil panen </h2>
+                    <canvas id="pieChart"></canvas>
+                </div>
+                <div class="col-md-6 card" style="background-color:#D0E3E0;  margin:20px; width:45%; border-radius:20px">
+                    <h2 class="mt-5">Perbandingan penjualan dan jumlah
+                        hasil panen dalam kilogram</h2>
+                    <table class="table table-bordered mt-3">
+                        <thead>
+                            <tr>
+                                <th>Tanggal Pencatatan</th>
+                                <th>Jumlah Panen (kg)</th>
+                                <th>Jumlah Dijual (kg)</th>
+                                <th>Harga Jual (Rp)</th>
+                                <th>Nama Komoditas</th>
+                            </tr>
+                        </thead>
+                        <tbody id="riwayat-tbody">
+                            {% for entry in history_data %}
+                            <tr>
+                                <td>{{ entry.tanggal_panen.strftime('%d-%m-%Y') }}</td>
+                                <td>{{ entry.jumlah_panen }}</td>
+                                <td>{{ entry.jumlah_dijual }}</td>
+                                <td>{{ entry.harga_jual }}</td>
+                                <td>{{ entry.commodity }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="no-data-section" class="text-center mt-5" style="display: none;">
+                <h3>Tidak ada data tersedia</h3>
+            </div>
+        </div>
+        <button type="button" class="btn mb-3" style="background-color: #3D6643; color:white" data-bs-toggle="modal" data-bs-target="#addDataModal">Tambah Data</button>
+        <div id="aktivitas-section" style="display: none;">
+            <h2>Aktivitas Terbaru</h2>
+            <div id="activity-container">
+                {% for entry in history_data %}
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ entry.tanggal_panen.strftime('%d-%m-%Y') }}</h5>
+                        <canvas id="barChart-{{ entry._id }}"></canvas>
+                        <p class="card-text">Jumlah Panen: {{ entry.jumlah_panen }} kg</p>
+                        <p class="card-text">Jumlah Dijual: {{ entry.jumlah_dijual }} kg</p>
+                        <p class="card-text">Harga Jual: Rp {{ entry.harga_jual }}</p>
+                        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#editDataModal" onclick="editData('{{ entry._id }}', '{{ entry.tanggal_panen.strftime('%Y-%m-%d') }}', '{{ entry.jumlah_dijual }}', '{{ entry.jumlah_panen }}', '{{ entry.harga_jual }}', '{{ entry.commodity }}')">Edit</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="modal fade" id="addDataModal" tabindex="-1" aria-labelledby="addDataModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addDataModalLabel">Tambah Data Penjualan dan Panen</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addDataForm" method="POST" action="/add_data">
+                            <div class="form-group">
+                                <label for="tanggal_panen">Tanggal Panen:</label>
+                                <input type="date" id="tanggal_panen" name="tanggal_panen" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="jumlah_dijual">Jumlah Dijual (kg):</label>
+                                <input type="number" id="jumlah_dijual" name="jumlah_dijual" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="jumlah_panen">Jumlah Panen (kg):</label>
+                                <input type="number" id="jumlah_panen" name="jumlah_panen" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="harga_jual">Harga Jual (Rp):</label>
+                                <input type="number" id="harga_jual" name="harga_jual" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="commodity">Nama Komoditas:</label>
+                                <select id="commodity" name="commodity" class="form-control" required>
+                                    <option value="beras gabah">Beras Gabah</option>
+                                    <option value="beras giling">Beras Giling</option>
+                                    <option value="jagung">Jagung</option>
+                                    <option value="cabe rawit">Cabe Rawit</option>
+                                    <option value="cabe merah besar">Cabe Merah Besar</option>
+                                    <option value="cabe merah kriting">Cabe Merah Kriting</option>
+                                    <option value="bawang merah">Bawang Merah</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-3">Submit</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="editDataModal" tabindex="-1" aria-labelledby="editDataModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editDataModalLabel">Edit Data Penjualan dan Panen</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editDataForm" method="POST" action="/update_data">
+                            <input type="hidden" id="edit-doc-id" name="doc_id">
+                            <div class="form-group">
+                                <label for="edit-tanggal_panen">Tanggal Panen:</label>
+                                <input type="date" id="edit-tanggal_panen" name="tanggal_panen" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-jumlah_dijual">Jumlah Dijual (kg):</label>
+                                <input type="number" id="edit-jumlah_dijual" name="jumlah_dijual" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-jumlah_panen">Jumlah Panen (kg):</label>
+                                <input type="number" id="edit-jumlah_panen" name="jumlah_panen" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-harga_jual">Harga Jual (Rp):</label>
+                                <input type="number" id="edit-harga_jual" name="harga_jual" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit-commodity">Nama Komoditas:</label>
+                                <select id="edit-commodity" name="commodity" class="form-control" required>
+                                    <option value="beras gabah">Beras Gabah</option>
+                                    <option value="beras giling">Beras Giling</option>
+                                    <option value="jagung">Jagung</option>
+                                    <option value="cabe rawit">Cabe Rawit</option>
+                                    <option value="cabe merah besar">Cabe Merah Besar</option>
+                                    <option value="cabe merah kriting">Cabe Merah Kriting</option>
+                                    <option value="bawang merah">Bawang Merah</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-3">Submit</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            $(document).ready(function() {
+                const panenData = {{ panen_data|tojson }};
+                const jualData = {{ jual_data|tojson }};
+                const historyData = {{ history_data|tojson }};
+
+                if (panenData.length === 0 && jualData.length === 0) {
+                    $('#chart-section').hide();
+                    $('#no-data-section').show();
+                } else {
+                    $('#chart-section').show();
+                    $('#no-data-section').hide();
+
+                    const lineChartPanenLabels = panenData.map(entry => new Date(entry.tanggal_panen).toLocaleDateString());
+                    const lineChartPanenData = panenData.map(entry => entry.jumlah_panen);
+
+                    const lineChartJualLabels = jualData.map(entry => new Date(entry.tanggal_panen).toLocaleDateString());
+                    const lineChartJualData = jualData.map(entry => entry.jumlah_dijual);
+
+                    const lineCtxPanen = document.getElementById('lineChartPanen').getContext('2d');
+                    new Chart(lineCtxPanen, {
+                        type: 'line',
+                        data: {
+                            labels: lineChartPanenLabels,
+                            datasets: [{
+                                label: 'Jumlah Panen (kg)',
+                                data: lineChartPanenData,
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 3
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+
+                    const lineCtxJual = document.getElementById('lineChartJual').getContext('2d');
+                    new Chart(lineCtxJual, {
+                        type: 'line',
+                        data: {
+                            labels: lineChartJualLabels,
+                            datasets: [{
+                                label: 'Jumlah Dijual (kg)',
+                                data: lineChartJualData,
+                                backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                                borderColor: 'rgba(255, 206, 86, 1)',
+                                borderWidth: 3
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+
+                    const totalPanen = lineChartPanenData.reduce((a, b) => a + b, 0);
+                    const totalJual = lineChartJualData.reduce((a, b) => a + b, 0);
+                    const pieCtx = document.getElementById('pieChart').getContext('2d');
+                    new Chart(pieCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: ['Jumlah Panen', 'Jumlah Dijual'],
+                            datasets: [{
+                                label: 'Persentase',
+                                data: [totalPanen, totalJual],
+                                backgroundColor: [
+                                    'rgba(54, 162, 235, 0.2)',
+                                    'rgba(255, 206, 86, 0.2)'
+                                ],
+                                borderColor: [
+                                    'rgba(54, 162, 235, 1)',
+                                    'rgba(255, 206, 86, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        }});
+                }
+
+                historyData.forEach(entry => {
+                    const ctx = document.getElementById(`barChart-${entry._id}`).getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Jumlah Panen', 'Jumlah Dijual'],
+                            datasets: [{
+                                label: entry.commodity,
+                                data: [entry.jumlah_panen, entry.jumlah_dijual],
+                                backgroundColor: [
+                                    'rgba(65, 105, 225, 0.5)',
+                                    'rgba(255, 215, 0, 0.5)'
+                                ],
+                                borderColor: [
+                                    'rgba(54, 162, 235, 1)',
+                                    'rgba(255, 206, 86, 1)'
+                                ],
+                                borderWidth: 3
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                x: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                });
+            });
+
+            function showSection(section) {
+                if (section === 'catatan') {
+                    $('#catatan-section').show();
+                    $('#aktivitas-section').hide();
+                } else if (section === 'aktivitas') {
+                    $('#catatan-section').hide();
+                    $('#aktivitas-section').show();
+                }
+            }
+
+            function editData(id, tanggal_panen, jumlah_dijual, jumlah_panen, harga_jual, commodity) {
+                $('#edit-doc-id').val(id);
+                $('#edit-tanggal_panen').val(tanggal_panen);
+                $('#edit-jumlah_dijual').val(jumlah_dijual);
+                $('#edit-jumlah_panen').val(jumlah_panen);
+                $('#edit-harga_jual').val(harga_jual);
+                $('#edit-commodity').val(commodity);
+                $('#editDataModal').modal('show');
+            }
+        </script>
+        {% include 'footer.html' %}
+</body>
+</html>
